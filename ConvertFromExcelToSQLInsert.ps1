@@ -106,7 +106,7 @@ function ConvertFrom-ExcelToSQLInsert {
 
         $trimmedValues = foreach ($propertyName in $iterator)
             {
-                If ( $Trim -eq $true) {
+                If ( $Trim -eq $true -and $record.$propertyName -ne $null) {
                     $record.$propertyName.Trim()
                 }
                 else {
