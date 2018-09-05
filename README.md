@@ -1,9 +1,42 @@
+## Donation
+
+If this project helped you reduce the time to get your job done, let me know.
+
+<!-- BADGES -->
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=UCSB9YVPFSNCY)
+
+![](https://media.giphy.com/media/hpXxJ78YtpT0s/giphy.gif)
+
+
+<br/>
+<br/>
+<br/>
+<p align="center">
+<a href="https://ci.appveyor.com/project/dfinke/importexcel/branch/master"><img src="https://ci.appveyor.com/api/projects/status/21hko6eqtpccrkba/branch/master?svg=true"></a>
+</p>
+
+<p align="center">
+<a href="./LICENSE.txt"><img
+src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a>
+<a href="https://www.powershellgallery.com/packages/ImportExcel"><img
+src="https://img.shields.io/powershellgallery/dt/ImportExcel.svg"></a>
+<a href="https://www.powershellgallery.com/packages/ImportExcel"><img
+src="https://img.shields.io/powershellgallery/v/ImportExcel.svg"></a>
+</p>
+
+<!-- /BADGES -->
+
 PowerShell Import-Excel
 -
 
-This PowerShell Module allows you to read and write Excel files without installing Microsoft Excel on your system. No need to bother with the cumbersome Excel COM-objects thanks to the .NET EPPlus DLL (http://epplus.codeplex.com/) which is included in the module. Creating Tables, Pivot Tables, Charts and much more has just become a lot easier.
+Install from the [PowerShell Gallery](https://www.powershellgallery.com/packages/ImportExcel/).
+
+This PowerShell Module allows you to read and write Excel files without installing Microsoft Excel on your system. No need to bother with the cumbersome Excel COM-object. Creating Tables, Pivot Tables, Charts and much more has just become a lot easier.
 
 ![](https://raw.githubusercontent.com/dfinke/ImportExcel/master/images/testimonial.png)
+
+# How to Videos
+* [PowerShell Excel Module - ImportExcel](https://www.youtube.com/watch?v=U3Ne_yX4tYo&list=PL5uoqS92stXioZw-u-ze_NtvSo0k0K0kq)
 
 Installation
 -
@@ -18,15 +51,189 @@ Install-Module ImportExcel -scope CurrentUser
 ```PowerShell
 Install-Module ImportExcel
 ```
+# New to Aug 16th
+- Value does not need to be mandatory in Set-Row or Set-Column, also tidied their parameters a little.
+- Added support for array formulas in Set-Format (it really should be set range now that it sets values, formulas and hyperlinks - that can go on the to-do list )
+- Fixed a bug with -Append in Export-Excel which caused it to overwrite the last row if the new data was a simple type.
+- NumberFormat in Export-Excel now sets the default for on a new / blank sheet; but [still] sets individual cells when adding to a sheet
+- Added support for timespans in Export excel ; set as elapsed hours, mins, secs [h]:mm:sss
+- In Export-Excel improved the catch-all handler for insuring values to cope better with nested objects (#419) and reduce the number of parse operations
+- Added -Calculate switch to Export-Excel and Close-Excel Package; EPPlus needs formulas to OMIT the leading = sign so where formula is set it now strips a leading = sign
+- Added -PivotTotals parameter where there was already -NoTotalsInPivot new one allows None, Both, Rows, Columns. (#415)
+- When appending Export-Excel only extended tables and ranges if they were explicitly specified. It now does it automatically.
+- Compare and Merge worksheet originally had a problem with > 26 columns, I fixed merge turns out I hadn't fixed compare ... I have now
+- Fixed bug where Export-Excel would not recognize it had to set  $TitleFillPattern - made the default 'Solid'
+- ExcludeProperty in Export-Excel now supports wildcards.
+- Added DateTime to the list of types which can be exported as single column.
+- Added Password support to Open- and Close-ExcelPackage (password was not doing anything in Export-Excel)
+- Gave Expand-NumberFormat a better grasp of currency layouts - it follows .NET which is not always the same as Excel would set:-(
 
-#### PowerShell V4 and Earlier
-To install to your personal modules folder (e.g. ~\Documents\WindowsPowerShell\Modules), run:
+# What's new in Release 5.1.1
+- Set-Row and Set-Column will now create hyperlinks and insert dates correctly
+- Import-Excel now has an argument completer for Worksheet name - this can be slow on large files
+- The NumberFormat parameter (in Export-Excel, Set-Row, Set-Column, Set-Format and Add-ConditionalFormat) and X&YAxisNumberFormat parameters (in New-ExcelChartDefinition and Add-ExcelChart) now have an argument completer and the names Currency, Number, Percentage, Scientific, Fraction, Short Date ,Short time,Long time, Date-Time and Text will be converted to the correct Excel formatting strings.
+- Added new function Select-Worksheet to make a named sheet active: Added -Activate switch to Add-Worksheet, to make current sheet active, Export-Excel and Add-PivotTable support -Activate and pass it to Add-Worksheet, and New-PivotTableDefinition allows it to be part of the Pivot TableDefinition.
+- Fixed a bug in Set-Format which caused -Hidden not to work
+- Made the same changes to Add-Conditional format as set format so -switch:$false is processed, and 0 enums and values are processed correctly
+- In Export-Excel, wrapped calls to Add-CellValue in a try catch so a value which causes an issue doesn't crash the whole export but generates a warning instead (#410) .
+- Additional tests.
 
-```PowerShell
-iex (new-object System.Net.WebClient).DownloadString('https://raw.github.com/dfinke/ImportExcel/master/Install.ps1')
+# What's new to July 18
+- Changed parameter evaluation in Set-Format to support -bold:$false (and other switches so that if false is specified the attribute will be removed ), and to bug were enums with a value of zero, and other zero parameters were not set.
+- Moved chart creation into its own function (Add-Excel chart) within Export-Excel.ps1. Renamed New-Excelchart to New-ExcelChartDefinition to make it clearer that it is not making anything in the workbook (but for compatibility put an alias of New-ExcelChart in so existing code does not break). Found that -Header does nothing, so it isn't Add-Excel chart and there is a message that does nothing in New-ExcelChartDefinition .
+- Added -BarChart -ColumnChart -LineChart -PieChart parameters to Export-Excel for quick charts without giving a full chart definition.
+- Added parameters for managing chart Axes and legend
+- Added some chart tests to Export-Excel.tests.ps1. (but tests & examples for quick charts , axes or legends still on the to do list )
+- Fixed some bad code which had been checked-in in-error and caused adding charts to break. (This was not seen outside GitHub #377)
+- Added "Reverse" parameter to Add-ConditionalFormatting ; and added -PassThru to make it easier to modify details of conditional formatting rules after creation (#396)
+- Refactored ConditionalFormatting code in Export excel to use Add-ConditionalFormatting.
+- Rewrote Copy-ExcelWorksheet to use copy functionality rather than import | export (395)
+- Found sorts could be inconsistent in Merge-MultipleWorksheet, so now sort on more columns.
+- Fixed a bug introduced into Compare-Worksheet by the change described in the June changes below, this meant the font color was only being set in one sheet, when a row was changed. Also found that the PowerShell ISE and shell return Compare-Object results in different sequences which broke some tests. Applied a sort to ensure things are in a predictable order.  (#375)
+- Removed (2) calls to Get-ExcelColumnName (Removed and then restored function itself)
+- Fixed an issue in Export-Excel where formulas were inserted as strings if "NoNumberConversion" is applied (#374), and made sure formatting is applied to formula cells
+- Fixed an issue with parameter sets in Export-Excel not being determined correctly in some cases (I think this had been resolved before and might have regressed)
+- Reverted the [double]::tryParse in export excel to the previous (longer) way, as the shorter way was not behaving correctly with with the number formats in certain regions. (also #374)
+- Changed Table, Range and AutoRangeNames to apply to whole data area if no data has been inserted OR to inserted data only if it has.(#376) This means that if there are multiple inserts only inserted data is touched, rather than going as far down and/or right as the furthest used cell. Added a test for this.
+- Added more of the Parameters from Export-Excel to Join-worksheet, join just calls export-excel with these parameters so there is no code behind them (#383)
+- Added more of the Parameters from Export-Excel to Send-SQLDataToExcel, send just calls export-excel with these parameters...
+- Added support for passing a System.Data.DataTable directly to Send-SQLDataToExcel
+- Fixed a bug in Merge-MultipleSheets where if the key was "name", columns like "displayName" would not be processed correctly, nor would names like "something_ROW". Added tests for Compare, Merge and Join Worksheet
+- Add-Worksheet , fixed a regression with move-after (#392), changed way default worksheet name is decided, so if none is specified, and an existing worksheet is copied (see June additions) and the name doesn't already exist, the original sheet name will be kept. (#393) If no name is given an a blank sheet is created, then it will be named sheetX where X is the number of the sheet (so if you have sheets FOO and BAR the new sheet will be Sheet3).
+
+# New in June 18
+- New commands - Diff , Merge and Join
+    - `Compare-Worksheet` (introduced in 5.0) uses the built in `Compare-object` command, to output a command-line DIFF and/or color the worksheet to show differences. For example, if my sheets are Windows services the *extra* rows or rows where the startup status has changed get highlighted
+    - `Merge-Worksheet` (also introduced in 5.0) joins two lumps, side by highlighting the differences. So now I can have server A's services and Server Bs Services on the same page.  I figured out a way to do multiple sheets. So I can have Server A,B,C,D on one page :-) that is `Merge-MultpleSheets`
+    For this release I've fixed heaven only knows how many typos and proof reading errors in the help for these two, the only code change is to fix a bug if two worksheets have different names, are in different files and the Comparison sends the delta in the second back before the one in first, then highlighting changed properties could throw an error. Correcting the spelling of Merge-MultipleSheets is potentially a breaking change (and it is still plural!)
+    also fixed a bug in compare worksheet where color might not be applied correctly when the worksheets came from different files and  had different name.
+    - `Join-Worksheet` is **new** for this release. At it's simplest it copies all the data in Worksheet A to the end of Worksheet B
+- Add-Worksheet
+    - I have moved this from ImportExcel.psm1 to ExportExcel.ps1 and it now can move a new worksheet to the right place, and can copy an existing worksheet (from the same or a different workbook) to a new one, and I set the Set return-type to aid intellisense
+- New-PivotTableDefinition
+    - Now Supports  `-PivotFilter` and `-PivotDataToColumn`, `-ChartHeight/width` `-ChartRow/Column`, `-ChartRow/ColumnPixelOffset` parameters
+- Set-Format
+    - Fixed a bug where the `-address` parameter had to be named, although the examples in `export-excel` help showed it working by position (which works now. )
+- Export-Excel
+    - I've done some re-factoring
+        1. I "flattened out" small "called-once" functions , add-title, convert-toNumber and Stop-ExcelProcess.
+        2. It now uses Add-Worksheet, Open-ExcelPackage and Add-ConditionalFormat instead of duplicating their functionality.
+        3. I've moved the PivotTable functionality (which was doubled up) out to a new function "Add-PivotTable" which supports some extra parameters PivotFilter and PivotDataToColumn, ChartHeight/width ChartRow/Column, ChartRow/ColumnPixelOffsets.
+        4. I've made the try{} catch{} blocks cover smaller blocks of code to give a better idea where a failure happened, some of these now Warn instead of throwing - I'd rather save the data with warnings than throw it away because we can't add a chart. Along with this I've added some extra write-verbose messages
+    - Bad column-names specified for Pivots now generate warnings instead of throwing.
+    - Fixed issues when pivot tables / charts already exist and an export tries to create them again.
+    - Fixed issue where AutoNamedRange, NamedRange, and TableName do not work when appending to a sheet which already contains the range(s) / table
+    - Fixed issue where AutoNamedRange may try to create ranges with an illegal name.
+    - Added check for illegal characters in RangeName or Table Name (replace them with "_"), changed tablename validation to allow spaces and applied same validation to RangeName
+    - Fixed a bug where BoldTopRow is always bolds row 1 even if the export is told to start at a lower row.
+    - Fixed a bug where titles throw pivot table creation out of alignment.
+    - Fixed a bug where Append can overwrite the last rows of data if the initial export had blank rows at the top of the sheet.
+    - Removed the need to specify a fill type when specifying a title background color
+    - Added MoveToStart, MoveToEnd, MoveBefore and MoveAfter Parameters - these go straight through to Add worksheet
+    - Added "NoScriptOrAliasProperties" "DisplayPropertySet" switches (names subject to change) - combined with ExcludeProperty these are a quick way to reduce the data exported (and speed things up)
+    - Added PivotTableName Switch (in line with 5.0.1 release)
+    - Add-CellValue now understands URI item properties. If a property is of type URI it is created as a hyperlink to speed up Add-CellValue
+        - Commented out the write verbose statements even  if verbose is silenced they cause a significant performance impact and if it's on they will cause a flood of messages.
+        - Re-ordered the choices in the switch and added an option to say "If it is numeric already post it as is"
+        - Added an option to only set the number format if doesn't match the default for the sheet.
+- Export-Excel Pester Tests
+    -   I have converted examples 1-9, 11 and 13 from Export-Excel help into tests and have added some additional tests, and extra parameters to the example command to get better test coverage. The test so far has 184 "should" conditions grouped as 58 "IT" statements; but is still a work in progress.
+- Compare-Worksheet pester tests
+
+---
+
+
+- [James O'Neill](https://twitter.com/jamesoneill) added `Compare-Worksheet`
+    - Compares two worksheets with the same name in different files.
+
+#### 4/22/2018
+Thanks to the community yet again
+- [ili101](https://github.com/ili101) for fixes and features
+    - Removed `[PSPlot]` as OutputType. Fixes it throwing an error
+- [Nasir Zubair](https://github.com/nzubair) added `ConvertEmptyStringsToNull` to the function `ConvertFrom-ExcelToSQLInsert`
+    - If specified, cells without any data are replaced with NULL, instead of an empty string. This is to address behaviors in certain DBMS where an empty string is insert as 0 for INT column, instead of a NULL value.
+
+
+#### 4/10/2018
+-New parameter `-ReZip`. It ReZips the xlsx so it can be imported to PowerBI
+
+Thanks to [Justin Grote](https://github.com/JustinGrote) for finding and fixing the error that Excel files created do not import to PowerBI online. Plus, thank you to [CrashM](https://github.com/CrashM) for confirming the fix.
+
+Super helpful!
+
+#### 3/31/2018
+- Updated `Set-Format`
+    * Added parameters to set borders for cells, including top, bottom, left and right
+    * Added parameters to set `value` and `formula`
+
+```powershell
+$data = @"
+From,To,RDollars,RPercent,MDollars,MPercent,Revenue,Margin
+Atlanta,New York,3602000,.0809,955000,.09,245,65
+New York,Washington,4674000,.105,336000,.03,222,16
+Chicago,New York,4674000,.0804,1536000,.14,550,43
+New York,Philadelphia,12180000,.1427,-716000,-.07,321,-25
+New York,San Francisco,3221000,.0629,1088000,.04,436,21
+New York,Phoneix,2782000,.0723,467000,.10,674,33
+"@
 ```
 
-# What's new
+![](https://github.com/dfinke/ImportExcel/blob/master/images/CustomReport.png?raw=true)
+
+
+- Added `-PivotFilter` parameter, allows you to set up a filter so you can drill down into a subset of the overall dataset.
+
+```powershell
+$data =@"
+Region,Area,Product,Units,Cost
+North,A1,Apple,100,.5
+South,A2,Pear,120,1.5
+East,A3,Grape,140,2.5
+West,A4,Banana,160,3.5
+North,A1,Pear,120,1.5
+North,A1,Grape,140,2.5
+"@
+```
+
+![](https://github.com/dfinke/ImportExcel/blob/master/images/PivotTableFilter.png?raw=true)
+
+
+#### 3/14/2018
+- Thank you to [James O'Neill](https://twitter.com/jamesoneill), fixed bugs with ChangeDatabase parameter which would prevent it working
+
+####
+* Added -Force to New-Alias
+* Add example to set the background color of a column
+* Supports excluding Row Grand Totals for PivotTables
+* Allow xlsm files to be read
+* Fix `Set-Column.ps1`, `Set-Row.ps1`, `SetFormat.ps1`, `formatting.ps1` **$false** and **$BorderRound**
+#### 1/1/2018
+* Added switch `[Switch]$NoTotalsInPivot`. Allows hiding of  the row totals in the pivot table.
+Thanks you to [jameseholt](https://github.com/jameseholt) for the request.
+
+```powershell
+    get-process | where Company | select Company, Handles, WorkingSet |
+        export-excel C:\temp\testColumnGrand.xlsx `
+            -Show -ClearSheet  -KillExcel `
+            -IncludePivotTable -PivotRows Company -PivotData @{"Handles"="average"} -NoTotalsInPivot
+```
+
+* Fixed when using certain a `ChartType` for the Pivot Table Chart, would throw an error
+* Fixed - when you specify a file, and the directory does not exit, it now creates it
+
+#### 11/23/2017
+More great additions and thanks to [James O'Neill](https://twitter.com/jamesoneill)
+
+* Added `Convert-XlRangeToImage` Gets the specified part of an Excel file and exports it as an image
+* Fixed a typo in the message at line 373.
+* Now catch an attempt to both clear the sheet and append to it.
+* Fixed some issues when appending to sheets where the header isn't in row 1 or the data doesn't start in column 1.
+* Added support for more settings when creating a pivot chart.
+* Corrected a typo PivotTableName was PivtoTableName in definition of New-PivotTableDefinition
+* Add-ConditionalFormat and Set-Format added to the parameters so each has the choice of working more like the other.
+* Added Set-Row and Set-Column - fill a formula down or across.
+* Added Send-SQLDataToExcel. Insert a rowset and then call Export-Excel for ranges, charts, pivots etc.
+
 #### 10/30/2017
 Huge thanks to [James O'Neill](https://twitter.com/jamesoneill). PowerShell aficionado. He always brings a flare when working with PowerShell. This is no exception.
 
@@ -43,8 +250,8 @@ Huge thanks to [James O'Neill](https://twitter.com/jamesoneill). PowerShell afic
 (Check out the examples `help Export-Excel -Examples`)
 
 * New function `Export-Charts` (requires Excel to be installed) - Export Excel charts out as JPG files
-* New function `Add-ConditionalFormatting` Adds contitional formatting to worksheet
-* New function `Set-Format` Applies Number, font, alignment and colour formatting to a range of Excel Cells
+* New function `Add-ConditionalFormatting` Adds conditional formatting to worksheet
+* New function `Set-Format` Applies Number, font, alignment and color formatting to a range of Excel Cells
 * `ColorCompletion` an argument completer for `Colors` for params across functions
 
 I also worked out the parameters so you can do this, which is the same as passing `-Now`. It creates an Excel file name for you, does an auto fit and sets up filters.
@@ -54,7 +261,7 @@ I also worked out the parameters so you can do this, which is the same as passin
 #### 10/13/2017
 Added `New-PivotTableDefinition`. You can create and wire up a PivotTable to a WorkSheet. You can also create as many PivotTable Worksheets to point a one Worksheet. Or, you create many Worksheets and many corresponding PivotTable Worksheets.
 
-Here you can create a WorkSheet with the data from `Get-Service`. Then create four PivotTables, pointing to the data each pivoting on a differnt dimension and showing a differnet chart
+Here you can create a WorkSheet with the data from `Get-Service`. Then create four PivotTables, pointing to the data each pivoting on a different dimension and showing a different chart
 
 ```powershell
 $base = @{
@@ -236,7 +443,7 @@ Get-Process |
 ![](https://github.com/dfinke/ImportExcel/blob/master/images/CellFormatting.png?raw=true)
 
 #### 9/28/2016
-[Fixed](https://github.com/dfinke/ImportExcel/pull/126) PowerShell 3.0 compatibility. Thanks to [headsphere](https://github.com/headsphere). He used `$obj.PSObject.Methods[$target]` snytax to make it backward compatible. PS v4.0 and later allow `$obj.$target`.
+[Fixed](https://github.com/dfinke/ImportExcel/pull/126) PowerShell 3.0 compatibility. Thanks to [headsphere](https://github.com/headsphere). He used `$obj.PSObject.Methods[$target]` syntax to make it backward compatible. PS v4.0 and later allow `$obj.$target`.
 
 Thank you to [xelsirko](https://github.com/xelsirko) for fixing - *Import-module importexcel gives version warning if started inside background job*
 
@@ -272,7 +479,7 @@ Thanks Attila.
 #### 4/30/2016
 Huge thank you to [Willie Möller](https://github.com/W1M0R)
 
-* He added a version check so the PowerShell Classes don't cause issues for downlevel version of PowerShell
+* He added a version check so the PowerShell Classes don't cause issues for down-level version of PowerShell
 * He also contributed the first Pester tests for the module. Super! Check them out, they'll be the way tests will be implemented going forward
 
 #### 4/18/2016
@@ -499,7 +706,7 @@ Or
 #### 9/25/2015
 
 **Hide worksheets**
-Got a great request from [forensicsguy20012004](https://github.com/forensicsguy20012004) to hide worksheets. You create a few pivotables, generate charts and then pivotable worksheets don't need to be visible.
+Got a great request from [forensicsguy20012004](https://github.com/forensicsguy20012004) to hide worksheets. You create a few pivotables, generate charts and then pivot table worksheets don't need to be visible.
 
 `Export-Excel` now has a `-HideSheet` parameter that takes and array of worksheet names and hides them.
 

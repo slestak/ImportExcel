@@ -1,8 +1,8 @@
 #Requires -Modules Pester
-#Requires -Modules Assert
+
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace '\.Tests\.', '.'
+
 
 Import-Module $here -Force
 
