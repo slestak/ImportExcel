@@ -13,6 +13,7 @@ If this project helped you reduce the time to get your job done, let me know.
 <br/>
 <p align="center">
 <a href="https://ci.appveyor.com/project/dfinke/importexcel/branch/master"><img src="https://ci.appveyor.com/api/projects/status/21hko6eqtpccrkba/branch/master?svg=true"></a>
+<a href="https://dougfinke.visualstudio.com/ImportExcel/_build?definitionId=10"><img src="https://dougfinke.visualstudio.com/ImportExcel/_apis/build/status/ImportExcel-CI?branchName=master"></a>
 </p>
 
 <p align="center">
@@ -51,7 +52,90 @@ Install-Module ImportExcel -scope CurrentUser
 ```PowerShell
 Install-Module ImportExcel
 ```
-# New to Aug 16th
+# What's new 5.4.5
+
+Thank you to [James O'Neill](https://github.com/jhoneill) for the great additions.
+
+- Modified Send-SQLDataToExcel so it creates tables and ranges itself; previously it relied on export-excel to do this which cause problems when adding data to an existing sheet (#555)
+- Added new command Add-ExcelDataValidation which will apply different data-validation rules to ranges of cells
+- Changed the export behavior so that (1) attempts to convert to a number only apply if the the value was a string; (2) Nulls are no longer converted to an empty string (3) there is a specific check for URIs and not just text which is a valid URI. Using UNC names in hyperlinks remains problematic.
+- Changed the behavior of AutoSize in export excel so it only applies to the exported columns. Previously if something was exported next to pre-existing data, AutoSize would resize the whole sheet, potentially undoing things which had been set on the earlier data. If anyone relied on this behavior they will need to explicitly tell the sheet to auto size with $sheet.cells.autofitColumns. (where $sheet points to the sheet, it might be $ExcelPackage.Workbook.Worksheets['Name'])
+- In Compare-Worksheet,the Key for comparing the sheets can now be written as a hash table with an expression - it is used with a Group-Object command so if it is valid in Group-Object it should be accepted; this allows the creation of composite keys when data being compared doesn't have a column which uniquely identifies rows.
+-  In Set-ExcelRange , added a 'Locked' option equivalent to the checkbox on the Protection Tab of the format cells dialog box in Excel.
+- Created a Set-WorksheetProtection function. This gives the same options the protection dialog in Excel but is 0.9 release at the moment.
+
+## New Example
+
+- Added [MutipleValidations.ps1](https://github.com/dfinke/ImportExcel/blob/master/Examples/ExcelDataValidation/MutipleValidations.ps1). Culled from the `tests`.
+
+# What's new 5.4.4
+
+- Fix issue when only a single property is piped into Export-Excel
+- Fix issue in `Copy-ExcelWorksheet`, close the `$Stream`
+
+# What's new 5.4.3
+
+- Added Remove-Worksheet: Removes one or more worksheets from one or more workbooks
+
+# What's new 5.4.2
+
+- Added parameters -GroupDateRow and -GroupDatePart & -GroupNumericRow, -GroupNumericMin, -GroupNumericMax and -GroupNumericInterval
+  to Add-PivotTable and New-PivotTableDefinition. The date ones gather dates of the same year and/or quarter and/or month and/or day etc.
+  the number ones group numbers into bands, starting at Min, and going up steps specified by Interval. Added tests and help for these.
+- Set-ExcelRow and Set-ExcelColumn now check that the worksheet name they passed exists in the workbook.
+
+![](https://raw.githubusercontent.com/dfinke/ImportExcel/cf964e3e4f761ca4058c4a4b809e2206b16709da/images/GroupingNumeric.png)
+
+# What's new 5.4.0
+
+- Thank you to Conrad Agramont, Twitter: [@AGramont](https://twitter.com/@AGramont) for the `AddMultiWorkSheet.ps1` example. Much appreciated!
+- Fixed several more bugs where parameters were ignored if passed a zero value
+- Fixed bug where chart series headers could not come form a cell reference (=Sheet1!Z10 now works as a header reference)
+- Add-Chart will now allow a single X range, or as many X ranges as there are Y ranges.
+- Merge-MultipleSheets is more robust.
+- Set-ExcelRow and Set-ExcelColumn trap attempts to process a sheet with no rows/columns.
+- Help has been proof-read (thanks to Mrs. @Jhoneill !).
+
+# What's new 5.3.4
+
+- HotFix for parameter PivotTableSyle should be PivotTableStyle https://github.com/dfinke/ImportExcel/issues/453
+
+# What's new 5.3.3
+
+- Thank you to (lazywinadmin)[https://github.com/lazywinadmin] - Expand aliases in examples and elsewhere
+- In Export-Excel fixed a bug where -AutoNameRange on pre-existing data included the header in the range.
+- In Export-Excel fixed a bug which caused a zero, null, or empty string in a list of simple objects to be skipped.
+- In Export-Excel improved the behaviour when a new worksheet is created without data, and Tables etc are added to it.
+- In Join-Worksheet: added argument completer to  -TitleBackgroundColor and set default for -TitleBackgroundStyle to 'Solid'.
+- In Add-Excel chart, New-ExcelChart, tests and Examples fixed mis-spelling of "Position"
+- In Send-SqlDataToExcel: improved robustness of check for no data returned.
+- In Set-ExcelColumn: -column can come from the pipeline (supporting an array introduces complications for supporting script blocks); -AutoNameRange no longer requires heading to specified (so you can do 1..10 | Set-ExcelColumn -AutoNameRange );  In Set-ExcelRow: -Row can come from the pipeline
+- Improved test coverage (back over 80%).
+- Help and example improvements. In "Index - music.ps1" the module for querying the index can be downloaded from PowerShell gallery #requires set to demand it. In SQL+FillColumns+Pivot\example2.ps1 the GetSQL module can be downloaded and #Requires has been set. The F1 results spreadsheet is available from one drive and a link is provided.
+
+- Added Azure DevOps continuous integration and badges <a href="https://dougfinke.visualstudio.com/ImportExcel/_build?definitionId=10"><img src="https://dougfinke.visualstudio.com/ImportExcel/_apis/build/status/ImportExcel-CI?branchName=master"></a>
+
+
+
+# What's new in Release 5.3
+
+- Help improvements and tidying up of examples and extra examples
+- Open-Excel Package and Add-Worksheet now add worksheets as script properties so `$Excel = Open-ExcelPackage -path test.xlsx ; $excel.sheet1` will return the sheet named "sheet1" `$Excel.SheetName` is a script property which is defined as `$this.workbook.worksheets["Sheetname"]`
+- Renamed Set-Column to `Set-ExcelColumn`, Set-Row to `Set-ExcelRow`, and Set-Format, to `Set-ExcelRange`. Added aliases so the old names still work.
+- `Set-ExcelRange` (or set-Format) used "Address" and "Range" incorrectly. There is now a single parameter `-Range`, with an alias of "Address".  If the worksheet parameter is present, the function accepts a string specifying cells ("A1:Z10") or a the name of range. Without the worksheet it accepts an object representing a named range or a Table; or a tables's address, or part of the worksheet.cells collection.
+- `Add-ConditionalFormatting`: Used "address" correctly, and it will accept ranges in the address parameter (range is now an alias for address). It now wraps conditional value strings in quotes when needed (for = <= >= operations string needs to be in double quotes see issue #424). Parameter intellisense has been improved. There are new parameters: `-StopIfTrue` and `-Priority` and support for using the `-Reverse` parameter with Color-scale rules (issue #430).  Booleans in the sheet are now supported as the value for a condition. Also brought the two different kinds of condition together inside Export-Excel, and fixed a bug where named-ranges didn't work in some places. In `New-ConditionalText`, more types of conditional format are supported, and the argument completer for -ConditionalTextColor was missing and has been added.
+- Improved handling of hyperlinks in `Export-Excel` (see issue #426)s
+- `Export-Excel` has better checking of Table and PivotTable names (for uniqueness) and a new test in quick charts that there is suitable data for charting. It also accepts hash tables for chart, pivot table and conditional formatting parameters which are splatted into the functions which add these.
+- Moved logic for adding a named-range out of Export-Excel and into a new function named `Add-ExcelName`, and logic for adding a table into a function named `Add-ExcelTable`; this is to make it easier to do these things independently of Export-Excel, but minimize duplication. The Add-ExcelTable command has extra parameters to toggle the options from table tools toolbar (show totals etc.) and set options in the totals row.
+- Moved PivotTable Functions out of Export-Excel.PS1 into their own file and moved Add-ExcelChart out of Export-Excel.ps1 into New-ExcelChart.ps1
+- Fixed bug in Merge-MultipleSheets  where background pattern was set to None, making background color invisible.
+- Fixed issues where formatting could be reset when using Export-Excel to manipulate an existing sheet without appending data; this applied to number-formats and tables.
+- `Add-PivotTable` has some new parameters `-PassThru` returns the pivot table (e.g. to allow names /sort orders of data series to be tweaked )  `-Address`  allows Pivot to be placed on an existing sheet; `-PivotTableStyle` allows a change from "Medium6", `-PivotNumberFormat` formats data cells. It is more flexible about how the source data is specified - copying the range options in Set-ExcelRange. `Add-ExcelChart` is now used for creating PivotCharts, and `-PivotChartDefinition`  allows a definition created with `New-ExcelChartDefinition` to be used when setting up a PivotTable. This opens up all the things that Add-ExcelChart can do without duplicating the parameters on Add-Pivot table and Export-Excel.  Definition, TableStyle, Numberformat and ChartDefiniton can be used in `New-PivotTableDefinition` .
+- `Add-ExcelChart` now supports -PassThru to return the chart for tweaking after creation; there is now a -PivotTable parameter to allow Add-PivotTable to call the code in Add-ExcelChart. And in `New-ExcelChartDefinition` Legend parameters (for size, bold & position ) are now supported
+- ChartDefinition and conditional formatting parameters can now be hashtables - anything that splats  Add-ExcelChart or Add-ConditionalFormatting, it should be acceptable as a definition.
+
+
+# What's new in Release 5.2
 - Value does not need to be mandatory in Set-Row or Set-Column, also tidied their parameters a little.
 - Added support for array formulas in Set-Format (it really should be set range now that it sets values, formulas and hyperlinks - that can go on the to-do list )
 - Fixed a bug with -Append in Export-Excel which caused it to overwrite the last row if the new data was a simple type.

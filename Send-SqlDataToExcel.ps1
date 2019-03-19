@@ -3,21 +3,26 @@
         .SYNOPSIS
             Inserts a DataTable - returned by SQL query into an ExcelSheet, more efficiently than sending it via Export-Excel
         .DESCRIPTION
-            This command can accept a data table object or take a SQL command and run it against a database connection.
-            If running the SQL command, it accepts an object representing a session with a SQL server or ODBC database, or a connection String to make a session.
-            It the DataTable is inserted into the Excel sheet
-            It takes most of the parameters of Export-Excel, but it is more efficient than getting dataRows and piping them into Export-Excel,
-            data-rows have additional properties which need to be stripped off.
+            This command can accept a data table object or take a SQL statement and run it against a database connection.
+            If running a SQL statement, the accepts either
+            * an object representing a session with a SQL server or ODBC database, or
+            * a connection String to make a session.
+            The command takes most of the parameters of Export-Excel, and after inserting the table into the worksheet it
+            calls Export-Excel to carry out other tasks on the sheet. It is more efficient to do this than to get data-rows
+             and pipe them into Export-Excel, stripped off the database 'housekeeping' properties.
         .PARAMETER DataTable
             A System.Data.DataTable object containing the data to be inserted into the spreadsheet without running a query.
         .PARAMETER Session
             An active ODBC Connection or SQL connection object representing a session with a database which will be queried to get the data .
         .PARAMETER Connection
-            Database connection string; either DSN=ODBC_Data_Source_Name, a full odbc or SQL Connection string, or the name of a SQL server. This is used to create a database session.
+            A database connection string to be used to create a database session; either
+            * A Data source name written in the form DSN=ODBC_Data_Source_Name, or
+            * A full odbc or SQL Connection string, or
+            * The name of a SQL server.
         .PARAMETER MSSQLServer
-            Specifies the connection string is for SQL server, not ODBC .
+            Specifies the connection string is for SQL server, not ODBC.
         .PARAMETER SQL
-            The SQL query to run against the session which was passed in -Session or set up from $Connection.
+            The SQL query to run against the session which was passed in -Session or set up from -Connection.
         .PARAMETER Database
            Switches to a specific database on a SQL server.
         .PARAMETER QueryTimeout
@@ -25,9 +30,9 @@
         .PARAMETER Path
             Path to a new or existing .XLSX file.
         .PARAMETER WorkSheetName
-            The name of a sheet within the workbook - "Sheet1" by default .
+            The name of a sheet within the workbook - "Sheet1" by default.
         .PARAMETER KillExcel
-            Closes Excel - prevents errors writing to the file because Excel has it open
+            Closes Excel - prevents errors writing to the file because Excel has it open.
         .PARAMETER Title
             Text of a title to be placed in the top left cell.
         .PARAMETER TitleBold
@@ -52,6 +57,8 @@
             Name(s) columns from the spreadhseet which will provide the Filter name(s) in a pivot table created from command line parameters.
         .PARAMETER PivotData
             In a pivot table created from command line parameters, the fields to use in the table body is given as a Hash table in the form ColumnName = Average|Count|CountNums|Max|Min|Product|None|StdDev|StdDevP|Sum|Var|VarP .
+        .PARAMETER PivotDataToColumn
+            If there are multiple datasets in a PivotTable, by default they are shown seperatate rows under the given row heading; this switch makes them seperate columns.
         .PARAMETER NoTotalsInPivot
             In a pivot table created from command line parameters, prevents the addition of totals to rows and columns.
         .PARAMETER IncludePivotChart
@@ -111,6 +118,9 @@
             Sizes the width of the Excel column to the maximum width needed to display all the containing data in that cell.
         .PARAMETER Show
             Opens the Excel file immediately after creation. Convenient for viewing the results instantly without having to search for the file first.
+        .PARAMETER CellStyleSB
+            A script block which is run at the end of the process to apply styles to cells (although it can be used for other purposes).
+            The script block is given three paramaters; an object containing the current worksheet, the Total number of Rows and the number of the last column.
         .PARAMETER ReturnRange
             If specified, Export-Excel returns the range of added cells in the format "A1:Z100"
         .PARAMETER PassThru
@@ -118,20 +128,32 @@
 
       .EXAMPLE
         C:\> Send-SQLDataToExcel -MsSQLserver -Connection localhost -SQL  "select name,type,type_desc from [master].[sys].[all_objects]" -Path .\temp.xlsx -WorkSheetname master -AutoSize -FreezeTopRow -AutoFilter -BoldTopRow
-        Connects to the local SQL server and selects 3 columns from [Sys].[all_objects] and exports then to a sheet named master with some basic header manager
+
+        Connects to the local SQL server and selects 3 columns from [Sys].[all_objects] and exports then to a sheet named master with some basic header management
+      .EXAMPLE
+        C:\> $SQL="SELECT top 25 Name,Length  From TestData ORDER BY Length DESC"
+        C:\> $Connection = ' Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=C:\Users\James\Documents\Database1.accdb;'
+
+        C:\> Send-SQLDataToExcel -Connection  $connection -SQL $sql -path .\demo1.xlsx -WorkSheetname "Sizes" -AutoSize
+
+         This declares a SQL statement and creates an  ODBC connection string to read from an Access file and extracts data from it and sends it to a new worksheet
+
       .EXAMPLE
         C:\> $SQL="SELECT top 25 DriverName, Count(RaceDate) as Races, Count(Win) as Wins, Count(Pole) as Poles, Count(FastestLap) as Fastlaps FROM Results GROUP BY DriverName ORDER BY (count(win)) DESC"
-        C:\> $Connection = 'Driver={Microsoft Excel Driver (*.xls, *.xlsx, *.xlsm, *.xlsb)};DriverId=790;ReadOnly=0;Dbq=C:\users\James\Documents\f1Results.xlsx;'
-        C:\> Send-SQLDataToExcel -Connection  $connection -SQL $sql -path .\demo1.xlsx -WorkSheetname "Winners" -AutoSize -AutoNameRange
+        C:\> $Connection = 'Driver={Microsoft Excel Driver (*.xls, *.xlsx, *.xlsm, *.xlsb)};Dbq=C:\users\James\Documents\f1Results.xlsx;'
+
+        C:\> Send-SQLDataToExcel -Connection  $connection -SQL $sql -path .\demo1.xlsx -WorkSheetname "Winners" -AutoSize -AutoNameRange -ConditionalFormat @{DataBarColor="Blue"; Range="Wins"}
 
         This declares a SQL statement and creates an  ODBC connection string to read from an Excel file, it then runs the statement and outputs the resulting data to a new spreadsheet.
+        The spreadsheet is formatted and a data bar added to show make the drivers' wins clearer.
         (the F1 results database is available from https://1drv.ms/x/s!AhfYu7-CJv4ehNdZWxJE9LMAX_N5sg )
       .EXAMPLE
         C:\> $SQL = "SELECT top 25 DriverName, Count(RaceDate) as Races, Count(Win) as Wins, Count(Pole) as Poles, Count(FastestLap) as Fastlaps FROM Results GROUP BY DriverName ORDER BY (count(win)) DESC"
         C:\> Get-SQL -Session F1 -excel -Connection "C:\Users\mcp\OneDrive\public\f1\f1Results.xlsx" -sql $sql -OutputVariable Table | out-null
+
         C:\> Send-SQLDataToExcel -DataTable $Table -Path ".\demo3.xlsx" -WorkSheetname Gpwinners -autosize  -TableName winners -TableStyle Light6 -show
 
-        This uses Get-SQL (at least V1.1 download from the gallery with Install-Module -Name GetSQL - note the function is get-SQL the module is GetSQL without the "-" )
+        This uses Get-SQL (at least V1.1 - download from the gallery with Install-Module -Name GetSQL - note the function is Get-SQL the module is GetSQL without the "-" )
         to simplify making database connections and building /submitting SQL statements.
         Here it uses the same SQL statement as before; -OutputVariable leaves a System.Data.DataTable object in $table
         and Send-SQLDataToExcel puts $table into the worksheet and sets it as an Excel table.
@@ -140,7 +162,7 @@
         C:\> $SQL = "SELECT top 25 DriverName,  Count(Win) as Wins FROM Results GROUP BY DriverName ORDER BY (count(win)) DESC"
         C:\> Send-SQLDataToExcel -Session $DbSessions["f1"] -SQL $sql -Path  ".\demo3.xlsx" -WorkSheetname Gpwinners -autosize -ColumnChart
 
-        Like the previous example, this uses Get-SQL (download from the gallery with Install-Module -Name GetSQL).It uses the connection which Get-SQL made rather than an ODFBC connection string
+        Like the previous example, this uses Get-SQL (download from the gallery with Install-Module -Name GetSQL). It uses the connection which Get-SQL made rather than an ODFBC connection string
         Here the data is presented as a quick chart.
       .EXAMPLE
         C:\>  Send-SQLDataToExcel -path .\demo3.xlsx -WorkSheetname "LR" -Connection "DSN=LR" -sql "SELECT name AS CollectionName FROM AgLibraryCollection Collection ORDER BY CollectionName"
@@ -174,7 +196,7 @@
         [OfficeOpenXml.Style.ExcelFillStyle]$TitleFillPattern = 'None',
         [Switch]$TitleBold,
         [Int]$TitleSize = 22,
-        [System.Drawing.Color]$TitleBackgroundColor,
+        $TitleBackgroundColor,
         [String]$Password,
         [Hashtable]$PivotTableDefinition,
         [Switch]$IncludePivotTable,
@@ -249,17 +271,49 @@
         $rowCount        = $dataAdapter.fill($dataTable)
         Write-Verbose -Message "Query returned $rowCount row(s)"
     }
-    if ($DataTable.Rows) {
+    if ($DataTable.Rows.Count) {
         #ExportExcel user a -NoHeader parameter so that's what we use here, but needs to be the other way around.
         $printHeaders    = -not $NoHeader
         if ($Title)  {$r = $StartRow +1 }
         else         {$r = $StartRow}
         #Get our Excel sheet and fill it with the data
         $excelPackage    = Export-Excel -Path $Path -WorkSheetname $WorkSheetname  -PassThru
-        $excelPackage.Workbook.Worksheets[$WorkSheetname].Cells[$r,$StartColumn].LoadFromDataTable($dataTable, $printHeaders )  | Out-Null
+        $ws              = $excelPackage.Workbook.Worksheets[$WorkSheetname]
+        $ws.Cells[$r,$StartColumn].LoadFromDataTable($dataTable, $printHeaders )  | Out-Null
+
+        $LastRow       = $StartRow    + $DataTable.Rows.Count # if start row is 1, row 1 will be the header, row 2 will be data, so don't need to subtract 1
+        $LastCol       = $StartColumn + $DataTable.Columns.Count - 1
+        $endAddress    = [OfficeOpenXml.ExcelAddress]::GetAddress($LastRow , $LastCol)
+        $startAddress  = [OfficeOpenXml.ExcelAddress]::GetAddress($StartRow, $StartColumn)
+        $dataRange     = "{0}:{1}" -f $startAddress, $endAddress
+
+        #Apply date format and range names
+        for ($c=0 ; $c -lt $DataTable.Columns.Count ; $c++) {
+            if ($DataTable.Columns[$c].DataType -eq [datetime]) {
+                Set-ExcelColumn -Worksheet $ws -Column ($c + $StartColumn) -NumberFormat 'Date-Time'
+            }
+            if ($AutoNameRange) {
+                Add-ExcelName  -RangeName $DataTable.Columns[$c].ColumnName -Range $ws.Cells[($StartRow+1), ($StartColumn + $c ), $LastRow, ($StartColumn + $c )]
+            }
+        }
+
+        #Apply range or table to whole - we can't leave this to Export-Excel if we are inserting onto a sheet where there is already data
+        if ($RangeName) {
+             Add-ExcelName  -Range $ws.Cells[$dataRange] -RangeName $RangeName
+             $null = $PSBoundParameters.Remove('RangeName')
+        }
+
+        if ($TableName) {
+            if ($PSBoundParameters.ContainsKey('TableStyle')) {
+                  Add-ExcelTable -Range  $ws.Cells[$dataRange] -TableName $TableName -TableStyle $TableStyle
+                  $null = $PSBoundParameters.Remove('TableStyle')
+            }
+            else {Add-ExcelTable -Range  $excelPackage.Workbook.Worksheets[$WorkSheetname].Cells[$dataRange] -TableName $TableName}
+            $null = $PSBoundParameters.Remove('TableName')
+        }
 
         #Call export-excel with any parameters which don't relate to the SQL query
-        "Connection", "Database" , "Session", "MsSQLserver", "Destination" , "SQL" , "DataTable", "Path" | ForEach-Object {$null = $PSBoundParameters.Remove($_) }
+        "AutoNameRange", "Connection", "Database" , "Session", "MsSQLserver", "Destination" , "SQL" , "DataTable", "Path" | ForEach-Object {$null = $PSBoundParameters.Remove($_) }
         Export-Excel -ExcelPackage $excelPackage   @PSBoundParameters
     }
     else {Write-Warning -Message "No Data to insert."}

@@ -1,4 +1,4 @@
-$data1 = ConvertFrom-Csv -InputObject @"
+﻿$data1 = ConvertFrom-Csv -InputObject @"
 ID,Product,Quantity,Price,Total
 12001,Nails,37,3.99,147.63
 12002,Hammer,5,12.10,60.5
@@ -22,58 +22,61 @@ ID,Product,Quantity,Price,Total
 12012,Pliers,3,14.99,44.97
 "@
 
-Describe "Join Worksheet" {
+Describe "Join Worksheet part 1" {
     BeforeAll {
         $path = "$Env:TEMP\test.xlsx"
         Remove-Item -Path $path -ErrorAction SilentlyContinue
         $data1 | Export-Excel -Path $path -WorkSheetname Oxford
         $data2 | Export-Excel -Path $path -WorkSheetname Abingdon
         $data3 | Export-Excel -Path $path -WorkSheetname Banbury
-        $ptdef = New-PivotTableDefinition -PivotTableName "Summary" -PivotRows "Store" -PivotColumns "Product" -PivotData @{"Total"="SUM"} -IncludePivotChart -ChartTitle "Sales Breakdown" -ChartType ColumnStacked -ChartColumn 10
-        Join-Worksheet -Path $path -WorkSheetName "Total" -Clearsheet -FromLabel "Store" -TableName "Summary" -TableStyle Light1 -AutoSize -BoldTopRow -FreezePane 2,1 -Title "Store Sales Summary" -TitleBold -TitleSize 14  -PivotTableDefinition $ptdef
+        $ptdef = New-PivotTableDefinition -PivotTableName "SummaryPivot" -PivotRows "Store" -PivotColumns "Product" -PivotData @{"Total"="SUM"} -IncludePivotChart -ChartTitle "Sales Breakdown" -ChartType ColumnStacked -ChartColumn 10
+        Join-Worksheet -Path $path -WorkSheetName "Total" -Clearsheet -FromLabel "Store" -TableName "SummaryTable" -TableStyle Light1 -AutoSize -BoldTopRow -FreezePane 2,1 -Title "Store Sales Summary" -TitleBold -TitleSize 14  -TitleBackgroundColor  ([System.Drawing.Color]::AliceBlue) -PivotTableDefinition $ptdef
 
-       $excel = Export-Excel -path $path -WorkSheetname Summary -Activate -HideSheet * -UnHideSheet "Total","Summary" -PassThru
+       $excel = Export-Excel -path $path -WorkSheetname SummaryPivot -Activate -NoTotalsInPivot -PivotDataToColumn -HideSheet * -UnHideSheet "Total","SummaryPivot" -PassThru
         # Open-ExcelPackage -Path $path
 
         $ws    = $excel.Workbook.Worksheets["Total"]
-        $pt    = $excel.Workbook.Worksheets["Summary"].pivottables[0]
-        $pc    = $excel.Workbook.Worksheets["Summary"].Drawings[0]
+        $pt    = $excel.Workbook.Worksheets["SummaryPivot"].pivottables[0]
+        $pc    = $excel.Workbook.Worksheets["SummaryPivot"].Drawings[0]
     }
     Context "Export-Excel setting spreadsheet visibility" {
         it "Hid the worksheets                                                                     " {
-            $excel.Workbook.Worksheets["Oxford"].Hidden                 | Should     be $true
-            $excel.Workbook.Worksheets["Banbury"].Hidden                | Should     be $true
-            $excel.Workbook.Worksheets["Abingdon"].Hidden               | Should     be $true
+            $excel.Workbook.Worksheets["Oxford"].Hidden                 | Should     be 'Hidden'
+            $excel.Workbook.Worksheets["Banbury"].Hidden                | Should     be 'Hidden'
+            $excel.Workbook.Worksheets["Abingdon"].Hidden               | Should     be 'Hidden'
         }
         it "Un-hid two of the worksheets                                                           " {
-            $excel.Workbook.Worksheets["Total"].Hidden                  | Should     be $false
-            $excel.Workbook.Worksheets["Summary"].Hidden                | Should     be $false
+            $excel.Workbook.Worksheets["Total"].Hidden                  | Should     be 'Visible'
+            $excel.Workbook.Worksheets["SummaryPivot"].Hidden           | Should     be 'Visible'
         }
         it "Activated the correct worksheet                                                        " {
-            $excel.Workbook.worksheets["Summary"].View.TabSelected      | Should     be $true
+            $excel.Workbook.worksheets["SummaryPivot"].View.TabSelected | Should     be $true
             $excel.Workbook.worksheets["Total"].View.TabSelected        | Should     be $false
-
         }
+
     }
-     Context "Merging 3 blocks" {
+    Context "Merging 3 blocks" {
         it "Created sheet of the right size with a title and a table                               " {
             $ws.Dimension.Address                                       | Should     be "A1:F16"
             $ws.Tables[0].Address.Address                               | Should     be "A2:F16"
-            $ws.cells["A1"].Value                                       | Should     be "Store Sales Summary"
-            $ws.cells["A1"].Style.Font.Size                             | Should     be 14
+            $ws.Cells["A1"].Value                                       | Should     be "Store Sales Summary"
+            $ws.Cells["A1"].Style.Font.Size                             | Should     be 14
+            $ws.Cells["A1"].Style.Font.Bold                             | Should     be $True
+            $ws.Cells["A1"].Style.Fill.BackgroundColor.Rgb              | Should     be "FFF0F8FF"
+            $ws.Cells["A1"].Style.Fill.PatternType.ToString()           | Should     be "Solid"
             $ws.Tables[0].StyleName                                     | Should     be "TableStyleLight1"
-            $ws.cells["A2:F2"].Style.Font.Bold                          | Should     be $True
+            $ws.Cells["A2:F2"].Style.Font.Bold                          | Should     be $True
         }
         it "Added a from column with the right heading                                             " {
-            $ws.cells["F2" ].Value                                      | Should     be "Store"
-            $ws.cells["F3" ].Value                                      | Should     be "Oxford"
-            $ws.cells["F8" ].Value                                      | Should     be "Abingdon"
-            $ws.cells["F13"].Value                                      | Should     be "Banbury"
+            $ws.Cells["F2" ].Value                                      | Should     be "Store"
+            $ws.Cells["F3" ].Value                                      | Should     be "Oxford"
+            $ws.Cells["F8" ].Value                                      | Should     be "Abingdon"
+            $ws.Cells["F13"].Value                                      | Should     be "Banbury"
         }
         it "Filled in the data                                                                     " {
-            $ws.cells["C3" ].Value                                      | Should     be $data1[0].quantity
-            $ws.cells["C8" ].Value                                      | Should     be $data2[0].quantity
-            $ws.cells["C13"].Value                                      | Should     be $data3[0].quantity
+            $ws.Cells["C3" ].Value                                      | Should     be $data1[0].quantity
+            $ws.Cells["C8" ].Value                                      | Should     be $data2[0].quantity
+            $ws.Cells["C13"].Value                                      | Should     be $data3[0].quantity
         }
         it "Created the pivot table                                                                " {
             $pt                                                         | Should not beNullOrEmpty
@@ -85,8 +88,11 @@ Describe "Join Worksheet" {
             $pc.Title.text                                              | Should     be "Sales Breakdown"
         }
     }
+}
     $path = "$env:TEMP\Test.xlsx"
     Remove-item -Path $path -ErrorAction SilentlyContinue
+IF ($PSVersionTable.PSVersion.Major -gt 5) {Write-warning -message "Part 2 Does not run on V6"; return}
+Describe "Join Worksheet part 2" {
      Get-WmiObject -Class win32_logicaldisk |
         Select-Object -Property DeviceId,VolumeName, Size,Freespace |
             Export-Excel -Path $path -WorkSheetname Volumes -NumberFormat "0,000"
@@ -116,6 +122,6 @@ Describe "Join Worksheet" {
             $ws.Cells["A$NextRow"].Value                                | Should     be $excel.Workbook.Worksheets[2].Cells["A2"].value
             $ws.Cells["B$NextRow"].Value                                | Should     be $excel.Workbook.Worksheets[2].Cells["B2"].value
         }
-    }
-}
+    } 
+} 
 

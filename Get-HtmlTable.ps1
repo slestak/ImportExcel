@@ -1,3 +1,5 @@
+# https://www.leeholmes.com/blog/2015/01/05/extracting-tables-from-powershells-invoke-webrequest/
+# tweaked from the above code
 function Get-HtmlTable {
     param(
         [Parameter(Mandatory=$true)]
@@ -21,9 +23,9 @@ function Get-HtmlTable {
 
         if(!$propertyNames) {
             if($cells[0].tagName -eq 'th') {
-                $propertyNames = @($cells | foreach {$_.innertext -replace ' ',''})
+                $propertyNames = @($cells | ForEach-Object {$_.innertext -replace ' ',''})
             } else  {
-                $propertyNames =  @(1..($cells.Count + 2) | % { "P$_" })
+                $propertyNames =  @(1..($cells.Count + 2) | Foreach-Object { "P$_" })
             }
             continue
         }        
